@@ -3,24 +3,28 @@
 #include <stdio.h>
 
 // Struct to represent a single item in the queue
-struct QueueItem {
+struct QueueItem
+{
     int data;
     struct timeval arrival;
     QueueItem next;
 };
 
 // Struct to represent the queue itself
-struct Queue {
+struct Queue
+{
     QueueItem head;
     QueueItem tail;
-    int size;           // Current size of the queue
-    int capacity;       // Maximum capacity of the queue
+    int size;     // Current size of the queue
+    int capacity; // Maximum capacity of the queue
 };
 
 // Create a new queue with the specified capacity
-Queue queue_create(int capacity) {
+Queue queue_create(int capacity)
+{
     Queue queue = (Queue)malloc(sizeof(*queue));
-    if (queue == NULL) {
+    if (queue == NULL)
+    {
         exit(EXIT_FAILURE);
     }
     queue->head = NULL;
@@ -30,15 +34,21 @@ Queue queue_create(int capacity) {
     return queue;
 }
 
-int queue_size(Queue queue){
+int queue_size(Queue queue)
+{
     return queue->size;
 }
 
 // Destroy the queue and free its memory
-void queue_destroy(Queue queue) {
+void queue_destroy(Queue queue)
+{
+    if(queue == NULL){
+        return;
+    }
     QueueItem current = queue->head;
     QueueItem next = NULL;
-    while (current){
+    while (current)
+    {
         next = current->next;
         free(current);
         current = next;
@@ -47,30 +57,52 @@ void queue_destroy(Queue queue) {
 }
 
 // Check if the queue is empty
-bool queue_is_empty(Queue queue) {
+bool queue_is_empty(Queue queue)
+{
+    if(queue == NULL){
+        return 0;
+    }
     return queue->size == 0;
 }
 
 // Check if the queue is full
-bool queue_is_full(Queue queue) {
-    return queue->size == queue->capacity;
+bool queue_is_full(Queue queue)
+{
+    if(queue == NULL){
+        return false;
+    }
+    if (queue->size == queue->capacity)
+    {
+        return true;
+    }
+    return false;
 }
 
 // Enqueue a new item into the queue
-void queue_enqueue(Queue queue, int data, struct timeval arrival) {
+void queue_enqueue(Queue queue, int data, struct timeval arrival)
+{
+    if(queue == NULL){
+        return;
+    }
+    if (queue_is_full(queue))
+        return;
 
-    QueueItem new_item = (QueueItem)malloc(sizeof(QueueItem));
-    if (new_item == NULL) {
+    QueueItem new_item = (QueueItem)malloc(sizeof(*new_item));
+    if (new_item == NULL)
+    {
         exit(EXIT_FAILURE);
     }
     new_item->data = data;
     new_item->arrival = arrival;
     new_item->next = NULL;
 
-    if (queue_is_empty(queue)) {
+    if (queue_is_empty(queue))
+    {
         queue->head = new_item;
         queue->tail = new_item;
-    } else {
+    }
+    else
+    {
         queue->tail->next = new_item;
         queue->tail = new_item;
     }
@@ -78,15 +110,22 @@ void queue_enqueue(Queue queue, int data, struct timeval arrival) {
 }
 
 // Dequeue an item from the queue
-int queue_dequeue(Queue queue) {
-   
+int queue_dequeue(Queue queue)
+{
+    if(queue == NULL){
+        return -1;
+    }
+    if (queue_is_empty(queue))
+        return -1;
+
     QueueItem temp = queue->head;
     int data = temp->data;
     queue->head = temp->next;
     free(temp);
     queue->size--;
 
-    if (queue_is_empty(queue)) {
+    if (queue_is_empty(queue))
+    {
         queue->tail = NULL;
     }
 
@@ -94,10 +133,15 @@ int queue_dequeue(Queue queue) {
 }
 
 // Print the contents of the queue (for debugging purposes)
-void queue_print(Queue queue) {
+void queue_print(Queue queue)
+{
+    if(queue == NULL){
+        return;
+    }
     printf("Queue: ");
     QueueItem current = queue->head;
-    while (current != NULL) {
+    while (current != NULL)
+    {
         printf("%d ", current->data);
         current = current->next;
     }
@@ -105,8 +149,14 @@ void queue_print(Queue queue) {
 }
 
 // Return the arrival time of the head item in the queue
-struct timeval queue_head_arrival_time(Queue queue) {
-    if (queue_is_empty(queue)) {
+struct timeval queue_head_arrival_time(Queue queue)
+{
+    if(queue == NULL){
+        struct timeval empty_time = {0};
+        return empty_time;
+    }
+    if (queue_is_empty(queue))
+    {
         struct timeval empty_time = {0};
         return empty_time;
     }
@@ -114,11 +164,19 @@ struct timeval queue_head_arrival_time(Queue queue) {
 }
 
 // Find the index of a value in the queue
-int queue_find(Queue queue, int value) {
+int queue_find(Queue queue, int value)
+{
+    if(queue == NULL){
+        return -1;
+    }
+    if (queue_is_empty(queue))
+        return -1;
     int index = 0;
     QueueItem current = queue->head;
-    while (current != NULL) {
-        if (current->data == value) {
+    while (current != NULL)
+    {
+        if (current->data == value)
+        {
             return index;
         }
         current = current->next;
@@ -128,26 +186,41 @@ int queue_find(Queue queue, int value) {
 }
 
 // Dequeue an item from the queue at the specified index
-int dequeue_index(Queue queue, int index) {
-    if (index < 0 || index >= queue->size) {
+int dequeue_index(Queue queue, int index)
+{
+    if(queue == NULL){
+        return -1;
+    }
+    if (queue_is_empty(queue))
+        return -1;
+    if (index < 0 || index >= queue->size)
+    {
         return -1; // Invalid index
+    }
+    if(index == 0){
+        return queue_dequeue(queue);
     }
 
     QueueItem current = queue->head;
     QueueItem previous = NULL;
     int i = 0;
-    while (i < index) {
+    while (i < index)
+    {
         previous = current;
         current = current->next;
         i++;
     }
     int data = current->data;
-    if (previous == NULL) {
+    if (previous == NULL)
+    {
         queue->head = current->next;
-    } else {
+    }
+    else
+    {
         previous->next = current->next;
     }
-    if (current == queue->tail) {
+    if (current == queue->tail)
+    {
         queue->tail = previous;
     }
     free(current);

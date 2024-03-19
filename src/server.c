@@ -54,8 +54,8 @@ void *thread_main(void *args)
             pthread_cond_wait(&new_req_cond, &m);
         }
         struct timeval arrival = queue_head_arrival_time(wait_queue);
-        int fd = dequeue(wait_queue);
-        enqueue(worker_queue, fd, arrival);
+        int fd = queue_dequeue(wait_queue);
+        queue_enqueue(worker_queue, fd, arrival);
         pthread_mutex_unlock(&m);
 
         struct timeval handle_time;
@@ -74,6 +74,7 @@ void *thread_main(void *args)
 
 int main(int argc, char *argv[])
 {
+
     int listenfd, connfd, port, clientlen, threads_num, queue_max_size;
     struct sockaddr_in clientaddr;
     char schedalg[7];
@@ -83,10 +84,9 @@ int main(int argc, char *argv[])
     // HW3: Create some threads...
     //
 
-    // mutex create
-    pthread_mutex_init(&m, NULL);
-    pthread_cond_init(&block_cond, NULL);
-    pthread_cond_init(&new_req_cond, NULL);
+    // queues create
+    wait_queue = queue_create(queue_max_size);
+    worker_queue = queue_create(threads_num);
 
     // threads create
     pthread_t *threads = malloc(sizeof(*threads) * threads_num);
@@ -98,10 +98,6 @@ int main(int argc, char *argv[])
         pthread_create(&threads[i], NULL, thread_main, (void *)thread_args);
     }
 
-    // queues create
-    wait_queue = queue_create(queue_max_size);
-    worker_queue = queue_create(threads_num);
-
     thread_dynamic = malloc(sizeof(int) * threads_num);
     thread_static = malloc(sizeof(int) * threads_num);
     thread_total = malloc(sizeof(int) * threads_num);
@@ -110,6 +106,11 @@ int main(int argc, char *argv[])
         thread_dynamic[i] = 0;
         thread_static[i] = 0;
     }
+
+    // mutex create
+    pthread_mutex_init(&m, NULL);
+    pthread_cond_init(&block_cond, NULL);
+    pthread_cond_init(&new_req_cond, NULL);
 
     listenfd = Open_listenfd(port);
     while (1)
@@ -159,7 +160,7 @@ int main(int argc, char *argv[])
                 }
                 else
                 {
-                    int fd = dequeue(wait_queue);
+                    int fd = queue_dequeue(wait_queue);
                     Close(fd);
                 }
             }
@@ -173,7 +174,7 @@ int main(int argc, char *argv[])
 
             else if (strcmp(schedalg, "bf") == 0)
             {
-                while(!queue_is_empty(worker_queue) && !queue_is_empty(wait_queue))
+                while (!queue_is_empty(worker_queue) && !queue_is_empty(wait_queue))
                 {
                     pthread_cond_wait(&block_cond, &m);
                 }
@@ -184,8 +185,8 @@ int main(int argc, char *argv[])
         struct timeval arrival;
         gettimeofday(&arrival, NULL);
 
-        enqueue(wait_queue, connfd, arrival);
-        pthread_cond_signal(&cond);
+        queue_enqueue(wait_queue, connfd, arrival);
+        pthread_cond_signal(&new_req_cond);
         pthread_mutex_unlock(&m);
     }
 }
